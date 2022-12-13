@@ -1,0 +1,14 @@
+{
+  "name": "com.reducingworkload",
+  "version": "1.0.0",
+  "displayName": "Reducing Workload Package",
+  "description": "This is a test package",
+  "unity": "2019.1",
+  "unityRelease": "0b5",
+  "author": {
+    "name": "Bilonel",
+    "email": "bilaldemir.3236@gmail.com",
+    "url": "https://www.unity3d.com"
+  },
+  "type": "tool"
+}
