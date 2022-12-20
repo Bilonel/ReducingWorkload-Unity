@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "com.reducingworkload": {
+    "com.bilonel.reducingworkload": {
       "version": "file:ReduceWorkload",
       "depth": 0,
       "source": "embedded",

@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 public class playerMovement : MonoBehaviour
 {
-    public float speed = 4;
+    public float speed = 4; 
+    public float rotationSpeed = 500;
     float valueOffset=0;
     float horizontal;
     float vertical;
@@ -15,6 +17,7 @@ public class playerMovement : MonoBehaviour
     {
         mesh = GetComponentInChildren<MeshRenderer>();
         mousePos = Input.mousePosition;
+        Cursor.visible = false;
     }
 
     // Update is called once per frame
@@ -29,7 +32,7 @@ public class playerMovement : MonoBehaviour
         movement.Normalize();
         rotate.Normalize();
         transform.Translate(movement * Time.deltaTime * speed);
-        transform.Rotate(-rotate*Time.deltaTime*speed*360);
+        transform.Rotate(-rotate*Time.deltaTime*rotationSpeed);
         float currentSpeed = -(movement * Time.deltaTime * speed).magnitude*Mathf.Sign(vertical);
         valueOffset += currentSpeed / 10;
         mesh.material.SetTextureOffset(16, new Vector2(0, valueOffset));

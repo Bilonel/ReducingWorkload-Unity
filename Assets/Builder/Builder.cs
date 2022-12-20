@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.ProBuilder;
 
@@ -9,9 +10,8 @@ public class Builder : MonoBehaviour
     [SerializeField] List<Transform> areas = new List<Transform>();
     public float areaDefaultSize=10;
     public int objectCount=20;
-
     // Start is called before the first frame update
-    void Start()
+    public void Start()
     {
         foreach (var item in areas)
         {
@@ -26,13 +26,8 @@ public class Builder : MonoBehaviour
 
                 Instantiate(objects[Random.Range(0, objects.Count)], position, Quaternion.Euler(rotation),transform).transform.localScale = localScale;
             }
-
+            
         }
-
-
-
-
-
     }
     Vector3 randomPoint(Transform area)
     {
@@ -54,5 +49,4 @@ public class Builder : MonoBehaviour
         }
         return pos;
     }
-    
 }
