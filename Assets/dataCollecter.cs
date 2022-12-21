@@ -73,7 +73,6 @@ public class dataCollecter : MonoBehaviour
         }
         
         var bits =ImageConversion.EncodeToPNG(t);
-        File.WriteAllBytes("C:/test/ImgFromUnity.png", bits);
         if(isExistInDb(GamerID))
         {
             userData oldData = GetDB(GamerID);

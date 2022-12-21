@@ -5,6 +5,7 @@ using System.IO;
 using UnityEngine;
 using UnityEditor;
 using System.Text;
+using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
 
 public class Scan : EditorWindow
 {
@@ -75,7 +76,7 @@ public class Scan : EditorWindow
                 GUILayout.Label("_________________________________________________________",EditorStyles.centeredGreyMiniLabel);
                 GUILayout.Space(30);
 
-                if (GUILayout.Button(" SEND OBJECTS TO ALGORITHM ", new GUILayoutOption[] { GUILayout.MinHeight(25) }))
+                if (GUILayout.Button(" SEND OBJECTS TO ALGORITHM *", new GUILayoutOption[] { GUILayout.MinHeight(25) }))
                 {
                     GameObject objIn = Selection.activeGameObject;
                     //string objData = MeshToString(Selection.activeGameObject.GetComponent<MeshFilter>(), Selection.activeGameObject.transform);
@@ -91,6 +92,9 @@ public class Scan : EditorWindow
                     //File.WriteAllText("C:/test/out.txt", outData);
                     Algorithm_ algo = new Algorithm_();
                     algo.Run(objIn);
+                    if(!objIn.GetComponent<StaticObject>())
+                        objIn.AddComponent<StaticObject>();
+                    objIn.GetComponent<StaticObject>().set(algo.VertexCount0,algo.orgmf,algo.orgmr,algo.VertexCount1,algo.newmf,algo.newmr);
                 }
             }
         }

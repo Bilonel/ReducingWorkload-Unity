@@ -1,14 +1,20 @@
-using MeshDecimator;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 using static UnityEngine.GraphicsBuffer;
+using MeshDecimator;
 
 public class Algorithm_ : MonoBehaviour
 {
     string currentObjectName="";
+    public float VertexCount0;
+    public float VertexCount1;
+    public UnityEngine.Mesh orgmf;
+    public Material[] orgmr;
+    public UnityEngine.Mesh newmf;
+    public Material[] newmr;
     // Start is called before the first frame update
     void Start()
     {
@@ -32,6 +38,10 @@ public class Algorithm_ : MonoBehaviour
     private void ProcessMeshRenderer(AutoLODProperties properties, int count=1)
     {
         GameObject go = properties._target.gameObject;
+            
+        VertexCount0 = go.GetComponent<MeshFilter>().sharedMesh.vertexCount;     
+        orgmf = component<MeshFilter>(go).sharedMesh;
+        orgmr = component<MeshRenderer>(go).sharedMaterials;
         float currentProgress = 0f;
         Undo.RecordObject(go, "Source GameObject modified");
         currentObjectName = go.name + "_LOD0";
@@ -39,10 +49,6 @@ public class Algorithm_ : MonoBehaviour
         GameObject detailedMesh = go;
         Undo.RegisterCreatedObjectUndo(detailedMesh, "Created LOD0");
 
-        //foreach (MonoBehaviour mb in detailedMesh.GetComponents<MonoBehaviour>())
-        //    DestroyImmediate(mb);
-
-        // Preventing from children duplication
         Transform[] children = detailedMesh.GetComponentsInChildren<Transform>();
         foreach (Transform child in children)
             if (child.gameObject != detailedMesh)
@@ -52,111 +58,28 @@ public class Algorithm_ : MonoBehaviour
         //Undo.SetTransformParent(detailedMesh.transform, parentGo.transform, "LOD0 New Parent");
         Undo.RecordObject(detailedMesh.transform, "LOD0 scale)");
         detailedMesh.transform.localScale = Vector3.one;
-        //LODGroup lodGroup = Undo.AddComponent<LODGroup>(parentGo);
-        //Undo.DestroyObjectImmediate(parentGo.GetComponent<MeshFilter>());
-        //Undo.DestroyObjectImmediate(parentGo.GetComponent<MeshRenderer>());
-        bool hasCollider = false;
-        if (parentGo.GetComponent<Collider>())
-        {
-            //Undo.DestroyObjectImmediate(parentGo.GetComponent<Collider>());
-            hasCollider = true;
-        }
+
         LOD[] lods = new LOD[properties._lodLevels];
         UnityEngine.Mesh lodMesh;
         lodMesh = detailedMesh.GetComponent<MeshFilter>().sharedMesh;
-
         bool hasBones = lodMesh.boneWeights.Length > 0;
         MeshDecimator.Mesh meshDecimator = Mesh2DecMesh(lodMesh);
 
         MeshDecimator.Algorithms.DecimationAlgorithm decimationAlgorithm = MeshDecimation.CreateAlgorithm(Algorithm.Default);
         decimationAlgorithm.StatusReport += ReportDecimationStatus;
 
-        //Using the existing mesh as LOD0
-        //{
-        //    if (properties._optimizeSourceMesh)
-        //    {
-        //        meshDecimator = MeshDecimator.MeshDecimation.DecimateMeshLossless(decimationAlgorithm, meshDecimator);
-        //        lodMesh = DecMesh2Mesh(meshDecimator, hasBones);
-        //        lodMesh.name = go.name + "_LOD0";
-        //        Undo.RecordObject(detailedMesh.GetComponent<MeshFilter>().sharedMesh, "LOD0 optimized mesh");
-        //        //if (properties._flatShading)
-        //        //{
-        //        //    AutoLODMeshUtility.Smooth2FlatShading(lodMesh);
-        //        //}
-        //        detailedMesh.GetComponent<MeshFilter>().sharedMesh = lodMesh;
-        //        if (properties._writeMeshOnDisk)
-        //        {
-        //            AssetDatabase.CreateAsset(lodMesh, AssetDatabase.GenerateUniqueAssetPath("Assets/" + properties._filePath + "/" + go.name + "_LOD0.asset"));
-        //        }
-        //    }
-        //    LOD lod = new LOD
-        //    {
-        //        renderers = new Renderer[1] { detailedMesh.GetComponent<Renderer>() },
-        //        screenRelativeTransitionHeight = (properties._lodLevels == 1 ? properties._relativeHeightCulling : properties._performance)
-        //    };
-        //    lods[0] = lod;
-        //    Undo.RecordObject(detailedMesh, "LOD0 Optimized Name");
-        //    detailedMesh.name = go.name + "_LOD0";
-        //}
-
-
         for (int l = 0; l < properties._lodLevels; ++l)
         {
-
-            currentObjectName = go.name + "_LOD" + l;
-            GameObject clone = Instantiate(go);
-            clone.name = currentObjectName;
-            //Undo.RegisterCreatedObjectUndo(clone, "Created LOD0");
-
             int triangleTargetCount = (int)(lodMesh.triangles.Length / (3 * properties._reductionRate));
             meshDecimator = MeshDecimator.MeshDecimation.DecimateMesh(decimationAlgorithm, meshDecimator, triangleTargetCount);
             lodMesh = DecMesh2Mesh(meshDecimator, hasBones);
-            lodMesh.name = go.name + "_LOD" + l;
-            //if (properties._flatShading)
-            //{
-            //    AutoLODMeshUtility.Smooth2FlatShading(lodMesh);
-            //}
-            if (properties._writeMeshOnDisk)
-            {
-                AssetDatabase.CreateAsset(lodMesh, AssetDatabase.GenerateUniqueAssetPath("Assets/" + properties._filePath + "/" + go.name + "_LOD" + l.ToString() + ".asset"));
-            }
-            //clone.transform.parent = parentGo.transform;
-            //clone.transform.localPosition = Vector3.zero;
-            //clone.transform.localRotation = Quaternion.identity;
-            //clone.transform.localScale = Vector3.one;
-            
-            component<MeshFilter>(clone).sharedMesh = lodMesh;
-            component<MeshRenderer>(clone).sharedMaterials = detailedMesh.GetComponent<Renderer>().sharedMaterials;
 
-            //if (hasCollider)
-            //{
-            //    component<MeshCollider>(clone).sharedMesh = clone.GetComponent<MeshFilter>().sharedMesh;
-            //}
-
-            LOD lod = new LOD
-            {
-                renderers = new Renderer[1] { clone.GetComponent<Renderer>() },
-            };
-            if (l < properties._lodLevels - 1)
-            {
-                if (Mathf.Pow(properties._performance, l + 1) > properties._relativeHeightCulling)
-                    lod.screenRelativeTransitionHeight = Mathf.Pow(properties._performance, l + 1);
-                else
-                {
-                    lod.screenRelativeTransitionHeight = (lods[l - 1].screenRelativeTransitionHeight + properties._relativeHeightCulling) / 2f;
-                }
-            }
-            else
-                lod.screenRelativeTransitionHeight = properties._relativeHeightCulling;
-            lods[l] = lod;
-            
+            component<MeshFilter>(go).sharedMesh = lodMesh;
+            component<MeshRenderer>(go).sharedMaterials = detailedMesh.GetComponent<Renderer>().sharedMaterials;
+            VertexCount1 = lodMesh.vertexCount;
+            newmf = component<MeshFilter>(go).sharedMesh;
+            newmr = component<MeshRenderer>(go).sharedMaterials;
         }
-        if (properties._writeMeshOnDisk)
-            AssetDatabase.SaveAssets();
-        //lodGroup.SetLODs(lods);
-        //lodGroup.animateCrossFading = true;
-        //lodGroup.fadeMode = LODFadeMode.CrossFade;
-        //LODGroup.crossFadeAnimationDuration = 0.1f;
         
     }
     T component<T>(GameObject go) where T:Component
