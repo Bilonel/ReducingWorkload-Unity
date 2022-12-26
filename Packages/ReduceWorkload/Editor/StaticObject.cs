@@ -38,7 +38,7 @@ public class StaticObject : MonoBehaviour
     {
         if (!Available) return;
         value+= distanceFactor/distance;
-        mesh.sharedMaterial.color = new Color(value, value, value);
+        mesh.material.color = new Color(value, value, value);
     }
     public void set(float count0, UnityEngine.Mesh mf0, Material[] mr0, float count1, UnityEngine.Mesh mf1, Material[] mr1)
     {
@@ -52,8 +52,10 @@ public class StaticObject : MonoBehaviour
         new_.mf = mf1;
         Difference = ((count0-count1) / count0) * 100;
     }
+    public int currentIndex = 1;
     public void setMesh(int index)
     {
+        currentIndex = index;
         if(index==0)
         {
             GetComponent<MeshRenderer>().sharedMaterials = original.mr;

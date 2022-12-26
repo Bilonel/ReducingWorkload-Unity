@@ -51,9 +51,9 @@ public class raySource : MonoBehaviour
         }
         
     }
-    private void OnDrawGizmos()
-    {
-        for(var i=0;i<rays.Count; i+=10 )
-            Gizmos.DrawLine(rays[i].GetPoint(0), rays[i].GetPoint(100));
-    }
+    //private void OnDrawGizmos()
+    //{
+    //    for(var i=0;i<rays.Count; i+=10 )
+    //        Gizmos.DrawLine(rays[i].GetPoint(0), rays[i].GetPoint(100));
+    //}
 }

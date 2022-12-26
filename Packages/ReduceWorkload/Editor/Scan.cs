@@ -6,32 +6,99 @@ using UnityEngine;
 using UnityEditor;
 using System.Text;
 using static UnityEditor.Experimental.AssetDatabaseExperimental.AssetDatabaseCounters;
+using Codice.Client.Common;
 
 public class Scan : EditorWindow
 {
     int dataCollectStyle = 0;
     int LayerIndex = 0;
+    int InterfaceIndex = 0;
     Color VisualizeColor;
-
+    float MaxReductionRate = 50;
     public bool scanning = false;
     bool scanned = false;
+    static GUIStyle customStyle=new GUIStyle();
+
     [MenuItem("Tools/ReducingWorkload")]
     public static void ShowWindow()
     {
-        GetWindow<Scan>("SCANNER");
+        GetWindow<Scan>("ReductionWorkload");
+        customStyle = new GUIStyle(EditorStyles.whiteLargeLabel);
+        customStyle.fontSize = 25;
+        customStyle.fontStyle = FontStyle.BoldAndItalic;
+        customStyle.alignment = TextAnchor.MiddleCenter;
     }
 
     void Update()
     {
         if (scanning)
+        {
             scanUpdate();
+        }
     }
     private void OnGUI()
     {
-        if (!scanning)
-            guiUpdate();
+        if (scanning) scanningGUI();
+        else
+        {
+            GUILayout.Space(10);
+            InterfaceIndex = GUILayout.SelectionGrid(InterfaceIndex, new string[] { "SCAN","ALGORITHM","RESULT" },3);
+            switch(InterfaceIndex)
+            {
+                case 0: scanGUI();
+                    break;
+                case 1: algorithmGUI();
+                    break;
+                case 2: performanceGUI();
+                    break;
+                default:break;
+            }
+        }
     }
-    void guiUpdate()
+    void performanceGUI()
+    {
+
+        GUILayout.Space(100);
+        EditorGUILayout.LabelField("<Not Found>", customStyle, GUILayout.Height(50), GUILayout.ExpandWidth(true));
+    }
+    void scanningGUI()
+    {
+        GUILayout.Space(100);
+        
+        EditorGUILayout.LabelField("P l e a s e   W a i t . . .", customStyle,GUILayout.Height(50),GUILayout.ExpandWidth(true));
+
+    }
+    void algorithmGUI()
+    {
+        if(!scanned || Objects.Count<1)
+        {
+            GUILayout.Space(100);
+            EditorGUILayout.LabelField("Target Objects Not Found", customStyle, GUILayout.Height(50), GUILayout.ExpandWidth(true));
+            return;
+        }
+        GUILayout.Space(30);
+        GUILayout.Label("Reduction Rate : ", EditorStyles.boldLabel);
+        GUILayout.Space(10);
+        MaxReductionRate=GUILayout.HorizontalSlider(MaxReductionRate, 10, 100);
+        GUILayout.Space(50);
+        if (GUILayout.Button(" SEND OBJECTS TO ALGORITHM *", new GUILayoutOption[] { GUILayout.MinHeight(25) }))
+        {
+            ReductionVertices algo;
+            GameObject objIn;
+
+            foreach (var item in Objects)
+            {
+                if (item.value > 1) item.value = 1;
+                float reductionRate = MathF.Abs(item.value - 1) * 2 * MaxReductionRate / 100 + 1;
+                objIn = item.gameObject;
+                algo = new ReductionVertices();
+                algo.Run(objIn, reductionRate);
+                item.set(algo.VertexCount0, algo.orgmf, algo.orgmr, algo.VertexCount1, algo.newmf, algo.newmr);
+            }
+            scanned = false;
+        }
+    }
+    void scanGUI()
     {
         GUILayout.Space(30);
         GUILayout.Label("Data Weighting Method : ", EditorStyles.boldLabel);
@@ -67,38 +134,12 @@ public class Scan : EditorWindow
             //reset();
             start();
             scanning = true;
+            startT = DateTime.Now;
         }
-        else
-        {
-            if(scanned)
-            {
-                GUILayout.Space(15);
-                GUILayout.Label("_________________________________________________________",EditorStyles.centeredGreyMiniLabel);
-                GUILayout.Space(30);
-
-                if (GUILayout.Button(" SEND OBJECTS TO ALGORITHM *", new GUILayoutOption[] { GUILayout.MinHeight(25) }))
-                {
-                    GameObject objIn = Selection.activeGameObject;
-                    //string objData = MeshToString(Selection.activeGameObject.GetComponent<MeshFilter>(), Selection.activeGameObject.transform);
-                    //File.WriteAllText("C:/test/in.obj", objData);
-                    ////string objData = File.ReadAllText("C:/test/out.txt");
-                    //Model model = new Model(objData);
-                    //Debug.Log("V " +model.vertices.Count);
-                    //Debug.Log("F " +model.faces.Count);
-                    //model.Run();
-                    //Debug.Log("JOINED COUNT : "+model.joinedFaceList.Count);
-                    //string outData = model.Save();
-                    //File.WriteAllText("C:/test/out.obj", outData);
-                    //File.WriteAllText("C:/test/out.txt", outData);
-                    Algorithm_ algo = new Algorithm_();
-                    algo.Run(objIn);
-                    if(!objIn.GetComponent<StaticObject>())
-                        objIn.AddComponent<StaticObject>();
-                    objIn.GetComponent<StaticObject>().set(algo.VertexCount0,algo.orgmf,algo.orgmr,algo.VertexCount1,algo.newmf,algo.newmr);
-                }
-            }
-        }
+       
     }
+    DateTime startT;
+    TimeSpan scanT;
 
     float rayIncrement = 50;
     float spotSpeed = 0.04f;
@@ -146,6 +187,10 @@ public class Scan : EditorWindow
     {
         scanning = false;
         scanned = true;
+        scanT = DateTime.Now - startT;
+        startT = new DateTime();
+        Debug.Log(scanT.TotalMilliseconds);
+        scanT = new TimeSpan();
         ShowWindow();
         foreach(var item in GameObject.FindObjectsOfType<raySource>())
             UnityEngine.Object.DestroyImmediate(item.gameObject);
@@ -155,60 +200,5 @@ public class Scan : EditorWindow
     {
         rayS.update();
         rayS.gameObject.GetComponent<LightMovement>().update();
-    }
-    /// 
-    /// Github.com/MattRix
-    /// 
-    public string MeshToString(MeshFilter mf, Transform t)
-    {
-        int StartIndex = 0;
-        Vector3 s = t.localScale;
-        Vector3 p = t.localPosition;
-        Quaternion r = t.localRotation;
-
-
-        int numVertices = 0;
-        Mesh m = mf.sharedMesh;
-        if (!m)
-        {
-            return "####Error####";
-        }
-        Material[] mats = mf.GetComponent<Renderer>().sharedMaterials;
-
-        StringBuilder sb = new StringBuilder();
-
-        foreach (Vector3 vv in m.vertices)
-        {
-            Vector3 v = t.TransformPoint(vv);
-            numVertices++;
-            sb.Append(string.Format("v {0} {1} {2}\n", v.x, v.y, -v.z));
-        }
-        sb.Append("\n");
-        foreach (Vector3 nn in m.normals)
-        {
-            Vector3 v = r * nn;
-            sb.Append(string.Format("vn {0} {1} {2}\n", -v.x, -v.y, v.z));
-        }
-        sb.Append("\n");
-        foreach (Vector3 v in m.uv)
-        {
-            sb.Append(string.Format("vt {0} {1}\n", v.x, v.y));
-        }
-        for (int material = 0; material < m.subMeshCount; material++)
-        {
-            sb.Append("\n");
-            sb.Append("usemtl ").Append(mats[material].name).Append("\n");
-            sb.Append("usemap ").Append(mats[material].name).Append("\n");
-
-            int[] triangles = m.GetTriangles(material);
-            for (int i = 0; i < triangles.Length; i += 3)
-            {
-                sb.Append(string.Format("f {0}/{0}/{0} {1}/{1}/{1} {2}/{2}/{2}\n",
-                                        triangles[i] + 1 + StartIndex, triangles[i + 1] + 1 + StartIndex, triangles[i + 2] + 1 + StartIndex));
-            }
-        }
-
-        StartIndex += numVertices;
-        return sb.ToString();
     }
 }
